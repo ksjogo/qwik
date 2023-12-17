@@ -140,17 +140,21 @@ async function authAction(
     ...authOptions,
     skipCSRFCheck,
   });
+  
+  let cookies = [];
   res.headers.forEach((value, key) => {
-    /**
-     * Do not set the header if already set accept in the case of set-cookie which is allowed
-     * https://httpwg.org/specs/rfc6265.html#rfc.section.3
-     */
-    if (!req.headers.has(key) || key === 'set-cookie') {
+    if (key === "set-cookie") {
+      // while browsers would support setting multiple cookies, the fetch implementation does not, so we join them later.
+      cookies.push(value);
+    } else if (!req.headers.has(key)) {
       req.headers.set(key, value);
     }
   });
-  fixCookies(req);
 
+  if (cookies.length > 0) {
+    req.headers.set("set-cookie", cookies.join('; '));
+  }
+  
   try {
     return await res.json();
   } catch (error) {
